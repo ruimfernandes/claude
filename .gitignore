@@ -1,0 +1,14 @@
+# Ignore everything by default
+*
+
+# Track config and skills
+!.gitignore
+!CLAUDE.md
+!settings.json
+!statusline-command.sh
+!skills/
+!skills/**
+!commands/
+!commands/**
+!hooks/
+!hooks/**
