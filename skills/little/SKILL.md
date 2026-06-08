@@ -100,7 +100,7 @@ Draft the PR body in repository-ready Markdown.
 
 ### Required Template Behavior
 
-- `Why`: include the ticket link when available plus a concise summary of what changed and why.
+- `Why`: include the ticket link when available plus a concise summary of what changed and why. Render the ticket link with the full URL as the link text, not a label like `Task`. For example, use `[https://get-sona.atlassian.net/browse/CORE-2294](https://get-sona.atlassian.net/browse/CORE-2294)`, not `[Task](https://get-sona.atlassian.net/browse/CORE-2294)`.
 - `Screenshots & Demo`: leave a placeholder reminder for screenshots or a loom when needed.
 - Checklist sections: answer every question based on the implementation.
 - Free-text security questions: provide short accurate answers, or `N/A` when not applicable.
@@ -137,12 +137,22 @@ Create the PR when the user explicitly asks for it.
    - `git diff <base-branch>...HEAD`
 2. Ask for the base branch if it is unclear.
 3. Push with `git push -u origin HEAD` if the branch is not yet on the remote.
-4. Generate the PR title and body from the included commits and diff.
-5. Create the PR with `gh pr create`, using a HEREDOC for the body.
+4. Generate the PR title following the `PR Title Format` rule and the body from the included commits and diff.
+5. Create the PR as a draft with `gh pr create --draft`, using a HEREDOC for the body.
 6. Return the PR URL.
+
+### PR Title Format
+
+- The PR title must always be `IDENTIFIER: Description`, where `IDENTIFIER` is the JIRA ticket id.
+- Derive the identifier from the JIRA ticket link or, failing that, the branch name. Examples:
+  - `https://get-sona.atlassian.net/browse/DOC-3148` → `DOC-3148`
+  - `https://get-sona.atlassian.net/browse/CORE-3386` → `CORE-3386`
+- `Description` is a concise summary of the change in imperative mood, e.g. `CORE-3386: Add retry logic to webhook dispatcher`.
+- If no JIRA identifier can be found, ask the user for the ticket id before creating the PR.
 
 ### Rules
 
+- Always open the PR as a draft (`gh pr create --draft`).
 - The PR body must follow `.github/pull_request_template.md` exactly when that file exists.
 - The PR summary should reflect the full branch delta, not just the last commit.
 - If the user asked only for the description, do not create the PR.
@@ -171,4 +181,4 @@ Output: the repository template filled with concise, ready-to-use content.
 
 Input: `Little create PR`
 
-Output: the created PR URL plus a one-line summary.
+Output: the created draft PR URL (titled `IDENTIFIER: Description`) plus a one-line summary.
