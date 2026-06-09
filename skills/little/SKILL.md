@@ -101,7 +101,12 @@ Draft the PR body in repository-ready Markdown.
 ### Required Template Behavior
 
 - `Why`: include the ticket link when available plus a concise summary of what changed and why. Render the ticket link with the full URL as the link text, not a label like `Task`. For example, use `[https://get-sona.atlassian.net/browse/CORE-2294](https://get-sona.atlassian.net/browse/CORE-2294)`, not `[Task](https://get-sona.atlassian.net/browse/CORE-2294)`.
-- `Screenshots & Demo`: leave a placeholder reminder for screenshots or a loom when needed.
+- `Screenshots & Demo`: leave a placeholder reminder for screenshots or a loom when needed. **When updating an existing PR** (e.g. the user asks to update the PR based on the current branch changes), if this section already contains a Loom URL, preserve it exactly as-is — do not replace, remove, or overwrite it with a placeholder. Example to keep untouched:
+
+  ```markdown
+  ## Screenshots & Demo
+  https://www.loom.com/share/12d883e3e7af43c4b83ff023291938ca
+  ```
 - Checklist sections: answer every question based on the implementation.
 - Free-text security questions: provide short accurate answers, or `N/A` when not applicable.
 
