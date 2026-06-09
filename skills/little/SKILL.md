@@ -136,7 +136,7 @@ Create the PR when the user explicitly asks for it.
    - recent `git log`
    - `git diff <base-branch>...HEAD`
 2. Ask for the base branch if it is unclear.
-3. Push with `git push -u origin HEAD` if the branch is not yet on the remote.
+3. Push with `git push -u origin HEAD` if the branch is not yet on the remote. If the push is rejected, see `Push Troubleshooting` before giving up.
 4. Generate the PR title following the `PR Title Format` rule and the body from the included commits and diff.
 5. Create the PR as a draft with `gh pr create --draft`, using a HEREDOC for the body.
 6. Return the PR URL.
@@ -156,6 +156,34 @@ Create the PR when the user explicitly asks for it.
 - The PR body must follow `.github/pull_request_template.md` exactly when that file exists.
 - The PR summary should reflect the full branch delta, not just the last commit.
 - If the user asked only for the description, do not create the PR.
+
+### Push Troubleshooting
+
+If `git push` is rejected with a message like:
+
+```
+! [remote rejected] HEAD -> <branch> (Unable to determine if workflow can be created or updated due to timeout; `workflows` scope may be required.)
+```
+
+do **not** assume the token simply lacks the `workflows` scope and stop there. This rejection is frequently caused by the **branch being based on a stale `master`**: GitHub's pre-receive workflow check times out evaluating the large/old diff, eve
+n when the branch touches no `.github/workflows/` files.
+
+Resolution order:
+
+1. **Rebase onto latest base, then retry the push** (this resolves the timeout in most cases):
+   ```bash
+   git fetch origin <base-branch>
+   git rebase origin/<base-branch>
+   git push -u origin HEAD
+   ```
+   `<base-branch>` is usually `master` (or `main`).
+2. If the rebase produces conflicts, stop and report them — do not force-resolve without the user.
+3. Only if the push **still** fails after a clean rebase, treat it as a genuine credentials/scope problem:
+   - The fine-grained PAT may need the **Workflows** repository permission set to **Read and write**, or
+   - The remote may need to use SSH instead of HTTPS.
+   - Ask the user to push themselves (e.g. `! git push -u origin HEAD`) or fix the token, then retry.
+
+Do not retry the same `git push` more than twice without changing something (rebasing, fixing the token, or switching remote protocol) — repeated identical pushes will keep failing identically.
 
 ## Examples
 
