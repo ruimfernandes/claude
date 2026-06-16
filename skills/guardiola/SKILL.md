@@ -81,13 +81,22 @@ Rationale: atomic commits make review, bisect, and rollback safer. Never batch m
 
 - Read the user request and any referenced files.
 - Identify unknowns that can change architecture, scope, data model, API contract, UX behavior, testing strategy, or rollout risk.
-- If uncertainty remains, ask targeted questions.
+- If uncertainty remains, clarify via the grill-me interview in 1.2.
 
-### 1.2 Ask Questions Aggressively (When Needed)
+### 1.2 Clarify via grill-me
 
-- Ask as many concise clarifying questions as needed to remove ambiguity.
-- Prefer grouped questions over single-question back-and-forth when possible.
-- If the user is unavailable or requests assumptions, list assumptions explicitly and continue.
+Drive clarification through the `grill-me` skill instead of an ad-hoc question dump. Invoke `grill-me` to interview the user about the plan:
+
+- Ask one question at a time, walking the decision tree and resolving dependencies between decisions in order (later questions must reflect earlier answers).
+- For every question, provide a recommended answer the user can accept or override.
+- Before asking, explore the codebase to answer anything that can be resolved there; only ask the user what the code cannot tell you.
+
+Run the full grill-me interview to remove ambiguity across architecture, scope, data model, API contract, UX behavior, testing strategy, and rollout risk.
+
+Termination:
+
+- End the interview once enough is resolved to write a plan that passes the Plan Quality Gate (1.4) — do not keep grilling past that point.
+- If the user is unavailable or asks to proceed on assumptions, stop the interview, list the assumptions explicitly, and continue to 1.3.
 
 ### 1.3 Produce the Plan File
 
