@@ -224,8 +224,9 @@ After Mr. Milchick completes, delegate PR work to `Little`. Commits already exis
 
 ### 4.1 Mode Selection
 
-- Use `Little PR description` when the user wants the PR body only.
-- Use `Little create PR` when the user explicitly wants the PR created.
+Default to `Little create PR`: create the draft PR with the appropriate description in one step. Do **not** ask the user whether they want a draft PR or just the PR description — creating the draft PR (which `Little` always opens via `gh pr create --draft`) is the default behavior for this stage.
+
+Only use `Little PR description` (body only, no PR created) when the user has explicitly asked for the description alone.
 
 ### 4.2 Delegation Contract
 
@@ -276,5 +277,5 @@ Use this concise format during execution:
 6. User confirms — Guardiola runs Bob Builder step 1, then `Little create commit`.
 7. Guardiola runs Bob Builder step 2, then `Little create commit`. Repeat for each step.
 8. After implementation gate passes, Guardiola runs Mr. Milchick.
-9. Guardiola invokes Little for the PR description or PR creation step.
+9. Guardiola invokes `Little create PR` to open the draft PR with the appropriate description (description-only when the user explicitly asked for just the body).
 10. Guardiola returns paths to plan and refinement report, plus Little's PR output.
