@@ -15,10 +15,11 @@ User says "Hunter" followed by:
 
 ## Workflow
 
-**The Hunter performs three main tasks in order:**
+**The Hunter performs four main tasks in order:**
 1. **Check and fix failing GitHub Actions** (CI failures, test failures)
 2. **Address CodeRabbit review comments**
 3. **Address github-actions bot review comments**
+4. **Address the human reviewer's comments** (default: `ruimfernandes`)
 
 ---
 
@@ -403,21 +404,86 @@ Add to the final summary:
 
 ---
 
-## Part D: Reply to Comments After Pushing
+## Part D: Human Reviewer Comments
 
-**This step is mandatory.** After all fixes have been committed for Parts A–C, push everything and post a reply to every comment Hunter touched — both the ones that were addressed and the ones that were skipped because they don't make sense to apply.
+Address review comments left by the human reviewer. The default reviewer is **`ruimfernandes`**; if the user names a different reviewer in the prompt, use that login instead.
 
-### Step D1: Push All Commits
+> Unlike bot comments, human comments are not always a code suggestion — they may be questions, requests for clarification, or discussion. Decide per comment whether it is **actionable** (apply a fix + commit) or **discussion-only** (reply with an answer, no commit).
+
+### Step D1: Fetch Reviewer Comments
+
+Fetch from the same three endpoints used for `github-actions` (the reviewer can post to all of them):
+
+```bash
+# Inline PR review comments (per-line, tied to a file + diff hunk)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --paginate
+
+# PR review summaries (review-level body)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --paginate
+
+# Issue-level (PR thread) comments
+gh api repos/{owner}/{repo}/issues/{pr_number}/comments --paginate
+```
+
+Filter where `user.login` is exactly `"ruimfernandes"` (or the reviewer the user specified).
+
+> **Note**: Human logins have **no `[bot]` suffix** — match the login exactly. Do not apply the `[bot]` filtering rule from Parts B and C here.
+
+### Step D2: Group and Prioritize
+
+Organize by file and source, same as Part C:
+- **Inline comments** (`/pulls/comments`): `path`, `line`/`original_line`, `body`, `diff_hunk`
+- **Review summaries** (`/reviews`) and **issue comments** (`/issues/comments`): no `path`/`line` — parse the `body` for actionable items
+
+### Step D3: Filter and Classify
+
+For each unresolved reviewer comment, classify it:
+
+1. **Skip resolved / already-addressed**: If the thread is resolved or a reply already says it was fixed — no reply needed
+2. **Actionable** (a concrete change request or suggestion): apply the fix (Step D4)
+3. **Discussion-only** (a question, opinion, or request for clarification with no clear single fix): do **not** guess at a code change — reply with an answer in Step E, or, if the right action is genuinely ambiguous, **ask the user** before proceeding (per the "Ask if unclear" rule)
+
+### Step D4: Process Each Actionable Comment
+
+1. **Read the file** at the specified path
+2. **Understand the request** from the comment body
+3. **Apply the fix** following the request (same process as Part B Step B5)
+4. **Create a commit**:
+   ```
+   fix: address review comment - {brief description}
+
+   Addresses {reviewer} comment in {file_path}:{line}:
+   {first line of the comment}
+   ```
+5. **Track the comment → commit mapping** so you can reply after pushing (see Part E)
+
+### Step D5: Update Summary
+
+Add to the final summary:
+
+**Reviewer Comments ({reviewer}):**
+- Total comments found
+- Comments addressed (with commit hashes)
+- Comments answered without a code change (discussion-only)
+- Comments skipped (and why — resolved, already fixed)
+
+---
+
+## Part E: Reply to Comments After Pushing
+
+**This step is mandatory.** After all fixes have been committed for Parts A–D, push everything and post a reply to every comment Hunter touched — the ones that were addressed, the ones that were skipped because they don't make sense to apply, and discussion-only reviewer comments that warrant an answer.
+
+### Step E1: Push All Commits
 
 ```bash
 git push
 ```
 
-Capture the SHAs of every commit Hunter created (Parts A, B, and C) so each comment can be replied to with its specific commit hash. Keep the comment-id → commit-sha mapping you tracked in Steps B5 and C4.
+Capture the SHAs of every commit Hunter created (Parts A, B, C, and D) so each comment can be replied to with its specific commit hash. Keep the comment-id → commit-sha mapping you tracked in Steps B5, C4, and D4.
 
-### Step D2: Reply to Addressed Comments
+### Step E2: Reply to Addressed Comments
 
-For each CodeRabbit / github-actions inline comment that Hunter addressed with a commit, post a reply using the comment's full SHA (not the abbreviated form):
+For each CodeRabbit / github-actions / reviewer inline comment that Hunter addressed with a commit, post a reply using the comment's full SHA (not the abbreviated form):
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies \
@@ -427,7 +493,7 @@ gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies \
 
 Use the inline comment's `id` (e.g. `PRRC_xxx` or numeric ID returned by `gh api`) for `{comment_id}`. One reply per addressed comment — even if multiple comments map to the same commit, reply on each individually.
 
-### Step D3: Reply to Skipped Comments
+### Step E3: Reply to Skipped Comments
 
 For each unresolved comment Hunter chose **not** to apply (false positive, out of scope, not applicable, already addressed elsewhere, informational-only that still warrants a response, etc.), post a reply with the Hunter feedback prefix:
 
@@ -442,7 +508,19 @@ The explanation should be specific — say *why* the change wasn't applied, not 
 - `Hunter (Rui's skill) feedback: out of scope for this PR — the refactor would touch {N} unrelated callers; tracked separately.`
 - `Hunter (Rui's skill) feedback: already addressed in commit {sha} via a different approach.`
 
-### Step D4: Notes
+### Step E4: Reply to Discussion-Only Reviewer Comments
+
+For each human reviewer comment classified as discussion-only in Step D3 (a question or clarification with no code change), post a direct answer using the Hunter feedback prefix:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/replies \
+  --method POST \
+  --field body="Hunter (Rui's skill) feedback: {answer}"
+```
+
+If answering would require a decision Hunter shouldn't make on its own, surface it to the user instead of replying automatically.
+
+### Step E5: Notes
 
 - **Review-summary findings** (from `/pulls/{pr_number}/reviews`) have no per-finding comment ID — note them in the final summary instead of replying.
 - **Resolved threads** are skipped silently — no reply needed.
@@ -467,6 +545,13 @@ The explanation should be specific — say *why* the change wasn't applied, not 
 - **Purely informational comments** (e.g. coverage summaries, deployment links): Skip — no actionable fix needed
 - **Outdated inline comments** (`position: null`): Use `diff_hunk` to locate the equivalent line in the current file state
 - **Duplicate suggestions**: If `github-actions[bot]` and CodeRabbit flag the same issue, the Part B fix counts — skip the duplicate in Part C
+
+### Human Reviewer Comments
+- **No `[bot]` suffix**: Match the human login exactly (e.g. `ruimfernandes`) — the `[bot]` filtering rule from Parts B/C does not apply here
+- **Different reviewer**: If the user names another reviewer in the prompt, filter for that login instead of the `ruimfernandes` default
+- **Not all comments are fixes**: Treat questions/clarifications as discussion-only — answer them (Step E4) rather than guessing at a code change
+- **Ambiguous requests**: If the right fix isn't clear, ask the user before applying anything (per "Ask if unclear")
+- **Duplicate of a bot comment**: If the reviewer echoes something a bot already flagged, the earlier Part B/C fix counts — skip the duplicate and reply noting it
 
 ### GitHub Actions / CI
 - **All checks passing**: Skip Part A and proceed directly to Part B (CodeRabbit comments)
