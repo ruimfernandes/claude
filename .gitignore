@@ -12,3 +12,9 @@
 !commands/**
 !hooks/
 !hooks/**
+
+# Track BuilderOS personalisation
+!.builderos/
+!.builderos/**
+!setup/
+!setup/**
