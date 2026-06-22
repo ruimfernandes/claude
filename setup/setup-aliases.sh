@@ -23,9 +23,10 @@ alias qstp="git stash pop"
 EOF
 
 # Source the alias file from each shell rc, idempotently.
+# Use ${ZDOTDIR:-$HOME} for zsh so we target the file zsh actually reads.
 SOURCE_LINE='[ -f "$HOME/.builderos_aliases" ] && . "$HOME/.builderos_aliases"'
 
-for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+for rc in "$HOME/.bashrc" "${ZDOTDIR:-$HOME}/.zshrc"; do
   [ -e "$rc" ] || touch "$rc"
   if ! grep -qF ".builderos_aliases" "$rc"; then
     printf '\n# BuilderOS personalisation aliases\n%s\n' "$SOURCE_LINE" >> "$rc"
